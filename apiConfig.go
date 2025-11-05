@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"strconv"
 	"sync/atomic"
 )
 
@@ -18,10 +18,17 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) handlerFileserverHitsCount(w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	numHits := strconv.Itoa(int(cfg.fileserverHits.Load()))
-	w.Write([]byte("Hits: " + numHits))
+	numHits := cfg.fileserverHits.Load()
+	htmlTemplate := `<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>`
+
+	w.Write([]byte(fmt.Sprintf(htmlTemplate, numHits)))
 }
 
 func (cfg *apiConfig) handlerFileserverHitsReset(w http.ResponseWriter, req *http.Request) {

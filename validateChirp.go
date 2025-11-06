@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -19,29 +18,18 @@ func validateChirp(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 	params := parameters{}
 	if err := decoder.Decode(&params); err != nil {
-		log.Printf("Error decoding parameters: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
+
 	const charLimit = 140
-
-	resBody := returnVals{}
-	w.Header().Set("Content-Type", "application/json")
-
 	if len(params.Body) > charLimit {
-		w.WriteHeader(http.StatusBadRequest)
-		resBody.Error = "Chirp is too long"
-	} else {
-		w.WriteHeader(http.StatusOK)
-		resBody.Valid = true
-	}
-
-	dat, err := json.Marshal(resBody)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
-	w.Write(dat)
+
+	respondWithJSON(w, http.StatusOK, returnVals{
+		Valid: true,
+	})
 
 }

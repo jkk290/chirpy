@@ -14,20 +14,20 @@ func TestProfaneCheck(t *testing.T) {
 			expected: "hello there",
 		},
 		{
-			input:    " got this",
-			expected: " got this",
+			input:    " got  this-kerfuffle",
+			expected: " got  this-kerfuffle",
 		},
 		{
 			input:    "kerfuffle you",
 			expected: "**** you",
 		},
 		{
-			input:    "FORNAX me!",
-			expected: "**** me!",
+			input:    "FORNAX me! sharbert",
+			expected: "**** me! ****",
 		},
 		{
-			input:    "sharbert!",
-			expected: "sharbert!",
+			input:    "sHArbert!",
+			expected: "sHArbert!",
 		},
 	}
 

@@ -14,6 +14,7 @@ import (
 func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+	platform := os.Getenv("PLATFORM")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Printf("Error connecting to postgres database: %s", err)
@@ -25,14 +26,16 @@ func main() {
 
 	apiCfg := &apiConfig{
 		dbQueries: database.New(db),
+		platform:  platform,
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/validate_chirp", validateChirp)
+	mux.HandleFunc("POST /api/users", apiCfg.createUser)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerFileserverHitsCount)
-	mux.HandleFunc("POST /admin/reset", apiCfg.handlerFileserverHitsReset)
+	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
 	srv := &http.Server{
 		Handler: mux,

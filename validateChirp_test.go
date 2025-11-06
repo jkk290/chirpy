@@ -29,6 +29,14 @@ func TestProfaneCheck(t *testing.T) {
 			input:    "sHArbert!",
 			expected: "sHArbert!",
 		},
+		{
+			input:    "kerfuffle fornax sharbert",
+			expected: "**** **** ****",
+		},
+		{
+			input:    "(sharbert)",
+			expected: "(sharbert)",
+		},
 	}
 
 	for _, c := range cases {

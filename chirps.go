@@ -61,6 +61,29 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, req *http.Request) {
 	respondWithJSON(w, http.StatusCreated, newChirp)
 }
 
+func (cfg *apiConfig) getAllChirps(w http.ResponseWriter, req *http.Request) {
+	chirps, err := cfg.dbQueries.GetChirps(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error getting all chirps", err)
+		return
+	}
+
+	final := []Chirp{}
+	for _, c := range chirps {
+		chirp := Chirp{
+			ID:        c.ID,
+			CreatedAt: c.CreatedAt,
+			UpdatedAt: c.UpdatedAt,
+			Body:      c.Body,
+			UserId:    c.UserID,
+		}
+		final = append(final, chirp)
+	}
+
+	respondWithJSON(w, http.StatusOK, final)
+
+}
+
 func profaneCheck(body string) string {
 	// profaneWords := []string{
 	// 	"kerfuffle",

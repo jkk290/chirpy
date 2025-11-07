@@ -1,0 +1,60 @@
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jkk290/chirpy/internal/auth"
+	"github.com/jkk290/chirpy/internal/database"
+)
+
+type User struct {
+	ID             uuid.UUID `json:"id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	Email          string    `json:"email"`
+	HashedPassword string    `json:"hashed_password"`
+}
+
+func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	decoder := json.NewDecoder(req.Body)
+	params := parameters{}
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	hashedpw, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error hashing password", err)
+		return
+	}
+
+	dbUser, err := cfg.dbQueries.CreateUser(req.Context(), database.CreateUserParams{
+		ID:             uuid.New(),
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		Email:          params.Email,
+		HashedPassword: hashedpw,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Couldn't create new user", err)
+		return
+	}
+
+	newUser := User{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+	}
+
+	respondWithJSON(w, http.StatusCreated, newUser)
+}

@@ -84,6 +84,28 @@ func (cfg *apiConfig) getAllChirps(w http.ResponseWriter, req *http.Request) {
 
 }
 
+func (cfg *apiConfig) getChirp(w http.ResponseWriter, req *http.Request) {
+	chirpId, err := uuid.Parse(req.PathValue("chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error parsing ID", err)
+		return
+	}
+
+	chirp, err := cfg.dbQueries.GetChirpById(req.Context(), chirpId)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "unable to find chirp", err)
+	}
+	final := Chirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserId:    chirp.UserID,
+	}
+	respondWithJSON(w, http.StatusOK, final)
+
+}
+
 func profaneCheck(body string) string {
 	// profaneWords := []string{
 	// 	"kerfuffle",

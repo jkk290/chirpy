@@ -11,10 +11,18 @@ func TestBearerToken(t *testing.T) {
 	header.Add("Authorization", "Bearer someTokenString")
 	token, err := GetBearerToken(header)
 	if err != nil || token == "" {
-		t.Error(err)
+		t.Errorf("error getting token: %s", err)
 		t.Fail()
 	}
 	if token != tokenString {
+		t.Fail()
+	}
+}
+
+func TestNoBearerToken(t *testing.T) {
+	header := http.Header{}
+	token, err := GetBearerToken(header)
+	if err == nil || token != "" {
 		t.Fail()
 	}
 }

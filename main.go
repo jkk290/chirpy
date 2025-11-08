@@ -15,6 +15,7 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	tokenSecret := os.Getenv("TOKEN_SECRET")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Printf("Error connecting to postgres database: %s", err)
@@ -25,8 +26,9 @@ func main() {
 	const port = "8080"
 
 	apiCfg := &apiConfig{
-		dbQueries: database.New(db),
-		platform:  platform,
+		dbQueries:   database.New(db),
+		platform:    platform,
+		tokenSecret: tokenSecret,
 	}
 
 	mux := http.NewServeMux()

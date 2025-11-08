@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jkk290/chirpy/internal/auth"
 	"github.com/jkk290/chirpy/internal/database"
 )
 
@@ -20,8 +21,7 @@ type Chirp struct {
 
 func (cfg *apiConfig) createChirp(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -29,6 +29,16 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, req *http.Request) {
 	if err := decoder.Decode(&params); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
+	}
+
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "not authorized", err)
+	}
+
+	validUserId, err := auth.ValidateJWT(token, cfg.tokenSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "not authorized", err)
 	}
 
 	const charLimit = 140
@@ -39,25 +49,26 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, req *http.Request) {
 
 	cleanedBody := profaneCheck(params.Body)
 
-	newChirp := Chirp{
+	dbChirp, err := cfg.dbQueries.CreateChirp(req.Context(), database.CreateChirpParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Body:      cleanedBody,
-		UserId:    params.UserId,
-	}
-
-	_, err := cfg.dbQueries.CreateChirp(req.Context(), database.CreateChirpParams{
-		ID:        newChirp.ID,
-		CreatedAt: newChirp.CreatedAt,
-		UpdatedAt: newChirp.UpdatedAt,
-		Body:      newChirp.Body,
-		UserID:    newChirp.UserId,
+		UserID:    validUserId,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "error creating chirp", err)
 		return
 	}
+
+	newChirp := Chirp{
+		ID:        dbChirp.ID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
+		Body:      dbChirp.Body,
+		UserId:    dbChirp.UserID,
+	}
+
 	respondWithJSON(w, http.StatusCreated, newChirp)
 }
 

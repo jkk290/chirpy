@@ -3,14 +3,16 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/jkk290/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
-		Password string `json:"password"`
-		Email    string `json:"email"`
+		Password         string `json:"password"`
+		Email            string `json:"email"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -32,11 +34,20 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	expiresDefault := 3600
+	expiresIn := time.Duration(max(expiresDefault, params.ExpiresInSeconds))
+
+	tokenString, err := auth.MakeJWT(dbUser.ID, cfg.tokenSecret, expiresIn*time.Second)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error generating token", err)
+	}
+
 	newUser := User{
 		ID:        dbUser.ID,
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
 		Email:     dbUser.Email,
+		Token:     tokenString,
 	}
 	respondWithJSON(w, http.StatusOK, newUser)
 }

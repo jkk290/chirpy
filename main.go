@@ -45,6 +45,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.createChirp)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerFileserverHitsCount)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.upgradeUser)
 
 	srv := &http.Server{
 		Handler: mux,

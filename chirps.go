@@ -34,11 +34,13 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, req *http.Request) {
 	token, err := auth.GetBearerToken(req.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "not authorized", err)
+		return
 	}
 
 	validUserId, err := auth.ValidateJWT(token, cfg.tokenSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "not authorized", err)
+		return
 	}
 
 	const charLimit = 140
@@ -105,6 +107,7 @@ func (cfg *apiConfig) getChirp(w http.ResponseWriter, req *http.Request) {
 	chirp, err := cfg.dbQueries.GetChirpById(req.Context(), chirpId)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "unable to find chirp", err)
+		return
 	}
 	final := Chirp{
 		ID:        chirp.ID,
@@ -114,7 +117,43 @@ func (cfg *apiConfig) getChirp(w http.ResponseWriter, req *http.Request) {
 		UserId:    chirp.UserID,
 	}
 	respondWithJSON(w, http.StatusOK, final)
+}
 
+func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, req *http.Request) {
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "not authorized", err)
+		return
+	}
+
+	validUserId, err := auth.ValidateJWT(token, cfg.tokenSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "not authorized", err)
+		return
+	}
+
+	chirpId, err := uuid.Parse(req.PathValue("chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error parsing ID", err)
+		return
+	}
+
+	dbChirp, err := cfg.dbQueries.GetChirpById(req.Context(), chirpId)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "unable to find chirp", err)
+		return
+	}
+
+	if dbChirp.UserID != validUserId {
+		respondWithError(w, http.StatusForbidden, "not author of chirp", nil)
+		return
+	}
+
+	if err := cfg.dbQueries.DeleteChirp(req.Context(), dbChirp.ID); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error deleting chirp", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func profaneCheck(body string) string {

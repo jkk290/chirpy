@@ -60,3 +60,55 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, req *http.Request) {
 
 	respondWithJSON(w, http.StatusCreated, newUser)
 }
+
+func (cfg *apiConfig) updateUser(w http.ResponseWriter, req *http.Request) {
+	type parameters struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	tokenString, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "token invalid", err)
+		return
+	}
+
+	userId, err := auth.ValidateJWT(tokenString, cfg.tokenSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "token invalid", err)
+		return
+	}
+
+	params := parameters{}
+	decoder := json.NewDecoder(req.Body)
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error parsing json", err)
+		return
+	}
+
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error hashing password", err)
+		return
+	}
+
+	dbUpdatedUser, err := cfg.dbQueries.UpdateUser(req.Context(), database.UpdateUserParams{
+		ID:             userId,
+		Email:          params.Email,
+		HashedPassword: hashedPassword,
+		UpdatedAt:      time.Now(),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error updating user", err)
+		return
+	}
+
+	updatedUser := User{
+		ID:        dbUpdatedUser.ID,
+		Email:     dbUpdatedUser.Email,
+		CreatedAt: dbUpdatedUser.CreatedAt,
+		UpdatedAt: dbUpdatedUser.UpdatedAt,
+	}
+
+	respondWithJSON(w, http.StatusOK, updatedUser)
+}

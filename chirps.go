@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -101,6 +102,8 @@ func (cfg *apiConfig) getAllChirps(w http.ResponseWriter, req *http.Request) {
 		}
 		respondWithJSON(w, http.StatusOK, final)
 	} else {
+		querySort := req.URL.Query().Get("sort")
+
 		chirps, err := cfg.dbQueries.GetChirps(req.Context())
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "error getting all chirps", err)
@@ -117,7 +120,16 @@ func (cfg *apiConfig) getAllChirps(w http.ResponseWriter, req *http.Request) {
 			}
 			final = append(final, chirp)
 		}
-		respondWithJSON(w, http.StatusOK, final)
+		if querySort == "desc" {
+			sort.Slice(final, func(i, j int) bool { return final[i].CreatedAt.After(final[j].CreatedAt) })
+			respondWithJSON(w, http.StatusOK, final)
+			return
+		} else {
+			sort.Slice(final, func(i, j int) bool { return final[i].CreatedAt.Before(final[j].CreatedAt) })
+			respondWithJSON(w, http.StatusOK, final)
+			return
+		}
+
 	}
 
 }

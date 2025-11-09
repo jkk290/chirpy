@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/jkk290/chirpy/internal/auth"
 	"github.com/jkk290/chirpy/internal/database"
 )
 
@@ -14,6 +15,12 @@ func (cfg *apiConfig) upgradeUser(w http.ResponseWriter, req *http.Request) {
 		Data  struct {
 			UserID string `json:"user_id"`
 		} `json:"data"`
+	}
+
+	submittedKey, err := auth.GetAPIKey(req.Header)
+	if err != nil || submittedKey != cfg.apiKey {
+		respondWithError(w, http.StatusUnauthorized, "unauthorized", err)
+		return
 	}
 
 	params := parameters{}

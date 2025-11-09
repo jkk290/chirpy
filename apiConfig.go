@@ -13,6 +13,7 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	tokenSecret    string
+	apiKey         string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {

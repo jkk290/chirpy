@@ -16,6 +16,8 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	tokenSecret := os.Getenv("TOKEN_SECRET")
+	apiKey := os.Getenv("POLKA_KEY")
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Printf("Error connecting to postgres database: %s", err)
@@ -29,6 +31,7 @@ func main() {
 		dbQueries:   database.New(db),
 		platform:    platform,
 		tokenSecret: tokenSecret,
+		apiKey:      apiKey,
 	}
 
 	mux := http.NewServeMux()
